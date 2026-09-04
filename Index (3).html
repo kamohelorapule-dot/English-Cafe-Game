@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The English Cafe Kiosk</title>
+<style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background-color: #2c3e50; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    /* Kiosk Frame Container */
+    .kiosk-container { width: 450px; height: 800px; background-color: #f4f6f7; border-radius: 20px; border: 12px solid #1a252f; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+    /* Kiosk Header Sign */
+    .kiosk-header { background-color: #6b4c35; padding: 10px 15px; text-align: center; border-bottom: 4px solid #4a3423; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .kiosk-header svg { height: 46px; width: 46px; flex-shrink: 0; }
+    .kiosk-header .header-text { text-align: left; }
+    .kiosk-header .header-text .en { color: #f4e8c1; font-weight: 800; font-size: 1.05rem; letter-spacing: 0.3px; line-height: 1.1; }
+    .kiosk-header .header-text .sub { color: #d9c79a; font-size: 0.65rem; letter-spacing: 1.5px; }
+
+    /* Screen Pages */
+    .page { display: none; flex: 1; flex-direction: column; padding: 18px 20px; text-align: center; overflow-y: auto; }
+    .page.active { display: flex; }
+
+    /* Screen banner used on payment / pickup / rate pages */
+    .page-banner { display: flex; align-items: center; justify-content: center; width: 100%; height: 150px; border-radius: 14px; margin-bottom: 12px; background: #fff; border: 2px solid #e5e8e8; }
+    .page-banner svg { height: 120px; }
+
+    /* Buttons & Controls */
+    .btn { background-color: #27ae60; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; font-weight: bold; border-radius: 30px; cursor: pointer; margin-top: 15px; transition: transform 0.1s, background-color 0.2s; }
+    .btn:hover { background-color: #219653; }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background-color: #e67e22; }
+    .btn-secondary:hover { background-color: #d35400; }
+    .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+
+    /* ---------------- Welcome Page (kiosk-home style) ---------------- */
+    #welcome-page { justify-content: flex-start; align-items: center; padding: 0; background: linear-gradient(180deg, #fdfaf3 0%, #f4e8c1 55%, #ecd8a0 100%); }
+    .welcome-lang-bar { width: 100%; display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px 0; }
+    .lang-pill { font-size: 0.7rem; font-weight: bold; padding: 5px 10px; border-radius: 20px; background: rgba(255,255,255,0.6); color: #6b4c35; border: 1px solid #d4ac0d; }
+    .lang-pill.active-lang { background: #6b4c35; color: #f4e8c1; }
+
+    .welcome-hero { display: flex; flex-direction: column; align-items: center; padding: 6px 20px 0; }
+    .welcome-hero svg { width: 140px; height: 140px; }
+    .welcome-hero h1 { color: #4a3423; font-size: 1.5rem; margin-top: 6px; letter-spacing: 0.3px; }
+    .welcome-hero p { color: #8a6d3b; font-size: 0.85rem; margin-top: 4px; }
+
+    .promo-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; padding: 16px 20px; }
+    .promo-card { background: white; border-radius: 12px; padding: 8px 6px 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+    .promo-card img { width: 100%; height: 54px; object-fit: cover; border-radius: 8px; }
+    .promo-card .promo-name { font-size: 0.68rem; font-weight: bold; color: #2c3e50; margin-top: 4px; }
+    .promo-card .promo-tag { font-size: 0.6rem; color: #e67e22; font-weight: bold; }
+
+    .order-type-row { display: flex; gap: 10px; width: 100%; padding: 0 20px; margin-top: 4px; }
+    .order-type-btn { flex: 1; background: white; border: 2px solid #d4ac0d; border-radius: 10px; padding: 10px; font-weight: bold; font-size: 0.8rem; color: #6b4c35; }
+    .order-type-btn.selected { background: #6b4c35; color: #f4e8c1; }
+
+    .welcome-cta-area { margin-top: auto; width: 100%; padding: 18px 20px 24px; background: rgba(255,255,255,0.5); }
+    .welcome-cta-area .btn { width: 100%; font-size: 1.25rem; padding: 20px; animation: pulseCta 2.2s ease-in-out infinite; }
+    .welcome-cta-area .hint { font-size: 0.7rem; color: #8a6d3b; margin-top: 8px; }
+    @keyframes pulseCta { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+    /* ---------------- Order Page ---------------- */
+    #order-page h3 { margin-top: 4px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .menu-card { background: white; border: 2px solid #e5e8e8; border-radius: 12px; padding: 8px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
+    .menu-card:hover { border-color: #27ae60; }
+    .menu-card .icon-wrap { width: 100%; height: 78px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; }
+    .menu-card .icon-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .menu-card h4 { margin: 6px 0 2px; font-size: 0.9rem; color: #2c3e50; }
+    .menu-card p { font-weight: bold; color: #27ae60; font-size: 0.85rem; }
+    .menu-card .qty-badge { position: absolute; top: 6px; right: 6px; background: #27ae60; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
+
+    .cart-bar { margin-top: 14px; background: white; padding: 12px; border-radius: 12px; border-top: 2px solid #ddd; text-align: left; }
+    .cart-items { max-height: 80px; overflow-y: auto; margin-bottom: 8px; }
+    .cart-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+    .cart-row button { background: #f4f6f7; border: 1px solid #ddd; border-radius: 6px; width: 22px; height: 22px; cursor: pointer; font-size: 0.9rem; line-height: 1; }
+    .cart-summary { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; padding-top: 6px; border-top: 2px solid #eee; }
+
+    /* ---------------- Pay Page ---------------- */
+    .payment-options { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .pay-option { background: white; padding: 18px; border-radius: 12px; border: 2px solid #cbd5e1; font-weight: bold; font-size: 1.05rem; cursor: pointer; text-align: left; }
+    .pay-option:hover { border-color: #27ae60; background-color: #f0fdf4; }
+    .pay-order-summary { background: #fdf6e3; border-radius: 10px; padding: 10px; font-size: 0.82rem; text-align: left; margin-top: 8px; }
+
+    /* ---------------- Pickup Page ---------------- */
+    .ticket-number { font-size: 3.6rem; font-weight: 800; color: #e67e22; margin: 10px 0; }
+    .pickup-status { background: #fef9c3; border: 2px dashed #f59e0b; padding: 15px; border-radius: 12px; margin-bottom: 16px; font-weight: bold; }
+
+    /* ---------------- Rating Page ---------------- */
+    .rating-emojis { display: flex; justify-content: center; gap: 10px; margin: 18px 0; }
+    .emoji-rate { font-size: 2.2rem; cursor: pointer; filter: grayscale(1) opacity(0.45); transition: filter 0.2s, transform 0.2s; background: none; border: none; }
+    .emoji-rate.selected { filter: grayscale(0) opacity(1); transform: scale(1.25); }
+</style>
+</head>
+<body>
+
+<div class="kiosk-container">
+    <div class="kiosk-header">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="94" fill="#f4e8c1" stroke="#e6c877" stroke-width="6"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#6b4c35" stroke-width="3"/>
+            <path d="M65 95 h58 v28 a29 29 0 0 1 -29 29 a29 29 0 0 1 -29 -29 z" fill="#fffdf8" stroke="#6b4c35" stroke-width="4"/>
+            <path d="M123 100 h12 a13 13 0 0 1 0 26 h-8" fill="none" stroke="#6b4c35" stroke-width="4"/>
+            <path d="M74 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+            <path d="M88 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+            <path d="M102 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+            <path id="topArc" d="M32 92 A68 68 0 0 1 168 92" fill="none"/>
+            <text font-size="15" font-weight="800" fill="#6b4c35" letter-spacing="1.5"><textPath href="#topArc" startOffset="50%" text-anchor="middle">THE ENGLISH CAFE</textPath></text>
+            <text x="100" y="168" font-size="10" font-weight="700" fill="#8a6d3b" text-anchor="middle" letter-spacing="2">SIP • SPEAK • LEARN</text>
+        </svg>
+        <div class="header-text">
+            <div class="en">The English Cafe</div>
+            <div class="sub">ORDERING KIOSK</div>
+        </div>
+    </div>
+
+    <!-- ================= WELCOME PAGE ================= -->
+    <div id="welcome-page" class="page active">
+        <div class="welcome-lang-bar">
+            <span class="lang-pill active-lang">EN</span>
+            <span class="lang-pill">中文</span>
+        </div>
+
+        <div class="welcome-hero">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="94" fill="#fffdf8" stroke="#e6c877" stroke-width="6"/>
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#6b4c35" stroke-width="3"/>
+                <path d="M65 95 h58 v28 a29 29 0 0 1 -29 29 a29 29 0 0 1 -29 -29 z" fill="#fdf6e3" stroke="#6b4c35" stroke-width="4"/>
+                <path d="M123 100 h12 a13 13 0 0 1 0 26 h-8" fill="none" stroke="#6b4c35" stroke-width="4"/>
+                <path d="M74 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path d="M88 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path d="M102 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path id="topArc2" d="M32 92 A68 68 0 0 1 168 92" fill="none"/>
+                <text font-size="15" font-weight="800" fill="#6b4c35" letter-spacing="1.5"><textPath href="#topArc2" startOffset="50%" text-anchor="middle">THE ENGLISH CAFE</textPath></text>
+                <text x="100" y="168" font-size="10" font-weight="700" fill="#8a6d3b" text-anchor="middle" letter-spacing="2">SIP • SPEAK • LEARN</text>
+            </svg>
+            <h1>Welcome to The English Cafe</h1>
+            <p>Practice your English & order delicious drinks</p>
+        </div>
+
+        <div class="promo-row">
+            <div class="promo-card">
+                <img src="https://images.unsplash.com/photo-1533007716222-4b465613a984?fm=jpg&amp;q=60&amp;w=200&amp;auto=format&amp;fit=crop" alt="Iced Coffee">
+                <div class="promo-name">Coffee</div>
+                <div class="promo-tag">Best Seller</div>
+            </div>
+            <div class="promo-card">
+                <img src="https://images.unsplash.com/photo-1734770580735-796a00e42cb2?fm=jpg&amp;q=60&amp;w=200&amp;auto=format&amp;fit=crop" alt="Bubble Tea">
+                <div class="promo-name">Bubble Tea</div>
+                <div class="promo-tag">New!</div>
+            </div>
+            <div class="promo-card">
+                <img src="https://images.unsplash.com/photo-1542108899561-eb215cf20d9f?fm=jpg&amp;q=60&amp;w=200&amp;auto=format&amp;fit=crop" alt="Hot Chocolate">
+                <div class="promo-name">Hot Chocolate</div>
+                <div class="promo-tag">Cozy Pick</div>
+            </div>
+        </div>
+
+        <div class="order-type-row">
+            <div class="order-type-btn selected">🍽️ Dine In</div>
+            <div class="order-type-btn">🥤 Take Out</div>
+        </div>
+
+        <div class="welcome-cta-area">
+            <button class="btn" onclick="navigateTo('order-page')">Touch Here to Order</button>
+            <div class="hint">Tap anywhere on the button to begin</div>
+        </div>
+    </div>
+
+    <!-- ================= ORDER PAGE ================= -->
+    <div id="order-page" class="page">
+        <h3>Select Your Drinks</h3>
+        <p style="color: #7f8c8d; font-size: 0.85rem;">Tap a drink to add it to your order. Tap again to add more.</p>
+
+        <div class="menu-grid">
+            <div class="menu-card" onclick="addToOrder('Coffee', 3.50)">
+                <span class="qty-badge" id="badge-Coffee" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1533007716222-4b465613a984?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Coffee"></div>
+                <h4>Coffee</h4>
+                <p>$3.50</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Cola', 2.50)">
+                <span class="qty-badge" id="badge-Cola" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1625126590447-cb769384e1f0?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Cola"></div>
+                <h4>Cola</h4>
+                <p>$2.50</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Lemonade', 3.00)">
+                <span class="qty-badge" id="badge-Lemonade" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1690983319841-ef2559d164b5?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Lemonade"></div>
+                <h4>Lemonade</h4>
+                <p>$3.00</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Tea', 2.50)">
+                <span class="qty-badge" id="badge-Tea" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1761483281120-4fc47bfe3e29?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Tea"></div>
+                <h4>Tea</h4>
+                <p>$2.50</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Bubble Tea', 4.00)">
+                <span class="qty-badge" id="badge-Bubble-Tea" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1734770580735-796a00e42cb2?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Bubble Tea"></div>
+                <h4>Bubble Tea</h4>
+                <p>$4.00</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Hot Chocolate', 3.00)">
+                <span class="qty-badge" id="badge-Hot-Chocolate" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1542108899561-eb215cf20d9f?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Hot Chocolate"></div>
+                <h4>Hot Chocolate</h4>
+                <p>$3.00</p>
+            </div>
+            <div class="menu-card" onclick="addToOrder('Soy Milk', 2.75)">
+                <span class="qty-badge" id="badge-Soy-Milk" style="display:none;">0</span>
+                <div class="icon-wrap"><img src="https://images.unsplash.com/photo-1596151163116-98a5033814c2?fm=jpg&amp;q=60&amp;w=300&amp;auto=format&amp;fit=crop" alt="Soy Milk"></div>
+                <h4>Soy Milk</h4>
+                <p>$2.75</p>
+            </div>
+        </div>
+
+        <div class="cart-bar">
+            <div class="cart-items" id="cart-items">
+                <p style="color:#95a5a6; font-size:0.85rem;">Your cart is empty</p>
+            </div>
+            <div class="cart-summary">
+                <span>Total</span>
+                <span>$<span id="cart-total">0.00</span></span>
+            </div>
+            <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" id="pay-btn" onclick="goToPay()" disabled>Proceed to Pay</button>
+        </div>
+    </div>
+
+    <!-- ================= PAY PAGE ================= -->
+    <div id="pay-page" class="page">
+        <div class="page-banner">
+            <svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="200" height="120" rx="16" fill="#00a3a3" stroke="#00807f" stroke-width="3"/>
+                <rect x="10" y="10" width="200" height="120" rx="16" fill="url(#cardGrad)" opacity="0.5"/>
+                <defs>
+                    <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+                        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <rect x="26" y="30" width="30" height="22" rx="4" fill="#f1c40f" stroke="#b7950b" stroke-width="1.5"/>
+                <path d="M62 34 a10 10 0 0 1 0 14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                <path d="M68 30 a16 16 0 0 1 0 22" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="150" cy="70" r="26" fill="#ffffff" opacity="0.18"/>
+                <path d="M132 70 a18 18 0 0 1 36 0 a18 18 0 0 1 -36 0" fill="none" stroke="#fff" stroke-width="4"/>
+                <path d="M150 58 q10 12 0 24 q-10 -12 0 -24" fill="#fff"/>
+                <text x="26" y="112" font-size="15" font-weight="800" fill="#fff" letter-spacing="1">YOYO CARD</text>
+                <text x="26" y="126" font-size="8" font-weight="600" fill="#eafffa" letter-spacing="2">TAIWAN TRANSIT &amp; STORED VALUE</text>
+            </svg>
+        </div>
+        <h3>Payment Method</h3>
+        <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;">Total Amount: $<span id="pay-total">0.00</span></p>
+        <div class="pay-order-summary" id="pay-order-summary"></div>
+
+        <div class="payment-options">
+            <div class="pay-option" onclick="processPayment('Credit/Debit Card')">💳 Credit / Debit Card</div>
+            <div class="pay-option" onclick="processPayment('Yoyo Card')">🚌 Tap Yoyo Card</div>
+            <div class="pay-option" onclick="processPayment('Cash at Counter')">💵 Pay Cash at Counter</div>
+        </div>
+
+        <button class="btn" style="background-color: #95a5a6;" onclick="navigateTo('order-page')">Back to Order</button>
+    </div>
+
+    <!-- ================= PICKUP PAGE ================= -->
+    <div id="pickup-page" class="page">
+        <div class="page-banner">
+            <img src="https://images.unsplash.com/photo-1501688190156-9e816757373a?fm=jpg&amp;q=60&amp;w=700&amp;auto=format&amp;fit=crop" alt="Order ready for pickup" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
+        </div>
+        <h3>Thank You!</h3>
+        <p style="color: #7f8c8d; margin-top: 5px;">Your order has been placed.</p>
+
+        <div class="ticket-number" id="ticket-num">#042</div>
+
+        <div class="pickup-status">
+            <p>☕ Order is being prepared!</p>
+            <p style="font-weight: normal; font-size: 0.85rem; margin-top: 5px;">Please pick up at the English Cafe counter when called.</p>
+        </div>
+
+        <button class="btn" onclick="navigateTo('rate-page')">I Received My Order</button>
+    </div>
+
+    <!-- ================= RATE PAGE ================= -->
+    <div id="rate-page" class="page">
+        <div class="page-banner">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="94" fill="#fffdf8" stroke="#e6c877" stroke-width="6"/>
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#6b4c35" stroke-width="3"/>
+                <path d="M65 95 h58 v28 a29 29 0 0 1 -29 29 a29 29 0 0 1 -29 -29 z" fill="#fdf6e3" stroke="#6b4c35" stroke-width="4"/>
+                <path d="M123 100 h12 a13 13 0 0 1 0 26 h-8" fill="none" stroke="#6b4c35" stroke-width="4"/>
+                <path d="M74 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path d="M88 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path d="M102 82 q4 -10 -2 -18" fill="none" stroke="#c8a45c" stroke-width="4" stroke-linecap="round"/>
+                <path id="topArc3" d="M32 92 A68 68 0 0 1 168 92" fill="none"/>
+                <text font-size="15" font-weight="800" fill="#6b4c35" letter-spacing="1.5"><textPath href="#topArc3" startOffset="50%" text-anchor="middle">THE ENGLISH CAFE</textPath></text>
+                <text x="100" y="168" font-size="10" font-weight="700" fill="#8a6d3b" text-anchor="middle" letter-spacing="2">SIP • SPEAK • LEARN</text>
+            </svg>
+        </div>
+        <h3>Rate Your Experience</h3>
+        <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;">How was your English Cafe experience?</p>
+
+        <div class="rating-emojis">
+            <button class="emoji-rate" onclick="setRating(1)">😞</button>
+            <button class="emoji-rate" onclick="setRating(2)">😕</button>
+            <button class="emoji-rate" onclick="setRating(3)">😐</button>
+            <button class="emoji-rate" onclick="setRating(4)">🙂</button>
+            <button class="emoji-rate" onclick="setRating(5)">😄</button>
+        </div>
+
+        <p id="rating-feedback" style="font-weight: bold; color: #27ae60; min-height: 24px;"></p>
+
+        <button class="btn" onclick="resetKiosk()">Finish & Return Home</button>
+    </div>
+</div>
+
+<script>
+    // Cart is a list of { name, price, qty } so the kiosk can hold a real multi-drink order.
+    let cart = [];
+
+    function navigateTo(pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+    }
+
+    function cartTotal() {
+        return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    }
+
+    function badgeId(name) {
+        return 'badge-' + name.replace(/\s+/g, '-');
+    }
+
+    function addToOrder(itemName, itemPrice) {
+        const existing = cart.find(item => item.name === itemName);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({ name: itemName, price: itemPrice, qty: 1 });
+        }
+        renderCart();
+    }
+
+    function removeOneFromOrder(itemName) {
+        const existing = cart.find(item => item.name === itemName);
+        if (!existing) return;
+        existing.qty -= 1;
+        if (existing.qty <= 0) {
+            cart = cart.filter(item => item.name !== itemName);
+        }
+        renderCart();
+    }
+
+    function renderCart() {
+        document.querySelectorAll('.qty-badge').forEach(badge => {
+            badge.style.display = 'none';
+            badge.innerText = '0';
+        });
+        cart.forEach(item => {
+            const badge = document.getElementById(badgeId(item.name));
+            if (badge) {
+                badge.innerText = item.qty;
+                badge.style.display = 'flex';
+            }
+        });
+
+        const cartItemsEl = document.getElementById('cart-items');
+        if (cart.length === 0) {
+            cartItemsEl.innerHTML = '<p style="color:#95a5a6; font-size:0.85rem;">Your cart is empty</p>';
+        } else {
+            cartItemsEl.innerHTML = cart.map(item => `
+                <div class="cart-row">
+                    <span>${item.name} x${item.qty}</span>
+                    <span style="display:flex; align-items:center; gap:8px;">
+                        $${(item.price * item.qty).toFixed(2)}
+                        <button onclick="removeOneFromOrder('${item.name}')" aria-label="Remove one ${item.name}">−</button>
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        const total = cartTotal();
+        document.getElementById('cart-total').innerText = total.toFixed(2);
+        document.getElementById('pay-btn').disabled = cart.length === 0;
+    }
+
+    function goToPay() {
+        if (cart.length === 0) {
+            alert('Please select at least one drink first!');
+            return;
+        }
+        document.getElementById('pay-total').innerText = cartTotal().toFixed(2);
+        document.getElementById('pay-order-summary').innerHTML = cart.map(item =>
+            `${item.name} x${item.qty} — $${(item.price * item.qty).toFixed(2)}`
+        ).join('<br>');
+        navigateTo('pay-page');
+    }
+
+    function processPayment(method) {
+        const randomTicket = Math.floor(100 + Math.random() * 900);
+        document.getElementById('ticket-num').innerText = '#' + randomTicket;
+        navigateTo('pickup-page');
+    }
+
+    function setRating(stars) {
+        const emojiElements = document.querySelectorAll('.emoji-rate');
+        emojiElements.forEach((el, index) => {
+            el.classList.toggle('selected', index === stars - 1);
+        });
+
+        const feedback = [
+            "We'll try better next time!",
+            "Thanks for your feedback!",
+            "Good job practicing English!",
+            "Great! Hope you enjoyed your drink!",
+            "Awesome! You're an English Cafe star! 🌟"
+        ];
+        document.getElementById('rating-feedback').innerText = feedback[stars - 1];
+    }
+
+    function resetKiosk() {
+        cart = [];
+        renderCart();
+        document.getElementById('rating-feedback').innerText = '';
+        document.querySelectorAll('.emoji-rate').forEach(el => el.classList.remove('selected'));
+        navigateTo('welcome-page');
+    }
+</script>
+
+</body>
+</html>
